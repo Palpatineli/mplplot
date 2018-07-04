@@ -1,1 +1,3 @@
-from .main import *
+from .importer import MplFigure
+
+__all__ = ['MplFigure']
