@@ -1,7 +1,7 @@
 from pytest import fixture
 import numpy as np
 import matplotlib.pyplot as plt
-from mplplot.tsplot import main as tsplot
+from mplplot.plots import tsplot
 
 @fixture
 def sine_wave():
