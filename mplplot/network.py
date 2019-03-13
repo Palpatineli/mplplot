@@ -4,18 +4,19 @@ import networkx as nx
 from matplotlib import pyplot as plt
 
 
-def corr_plot(corr_mat, file_name, categories, node_names, layout=None):
+def corr_plot(corr_mat, file_name, categories, node_names=None, layout=None):
     """plot network graph using correlation as inverse distance"""
     length = corr_mat.shape[0]
     graph = nx.from_numpy_matrix(corr_mat)
-    if node_names and len(node_names) == length:
-        nx.relabel_nodes(graph, dict(zip(range(length), node_names)), copy=False)
     if not layout:
         layout = nx.spring_layout(graph)
-    positive_edges = [(u, v, d) for u, v, d in graph.edges(data=True) if corr_mat[u, v] > 0.3]
-    positive_weights = [corr_mat[u, v] for u, v, _ in positive_edges]
-    negative_edges = [(u, v, d) for u, v, d in graph.edges(data=True) if corr_mat[u, v] < -0.1]
-    negative_weights = [-corr_mat[u, v] for u, v, _ in negative_edges]
+    if node_names is not None and len(node_names) == length:
+        nx.relabel_nodes(graph, dict(zip(range(length), node_names)), copy=False)
+    indices = {name: idx for idx, name in enumerate(node_names)}
+    positive_edges = [(u, v, d) for u, v, d in graph.edges(data=True) if corr_mat[indices[u], indices[v]] > 0.3]
+    positive_weights = [corr_mat[indices[u], indices[v]] for u, v, _ in positive_edges]
+    negative_edges = [(u, v, d) for u, v, d in graph.edges(data=True) if corr_mat[indices[u], indices[v]] < -0.1]
+    negative_weights = [-corr_mat[indices[u], indices[v]] for u, v, _ in negative_edges]
     plt.figure()
     nx.draw_networkx_nodes(graph, layout, node_size=200, nodelist=list(categories['good']),
                            node_color='#EA120D')  # red
@@ -46,6 +47,8 @@ def scatter_plot(corr_mat, file_name, categories, layout=None):
     return layout
 
 
-def get_layout(weight_mat):
+def get_layout(weight_mat, node_names=None):
     graph = nx.from_numpy_matrix(np.power(weight_mat, 2) * 5)
+    if node_names is not None and len(node_names) == weight_mat.shape[0]:
+        nx.relabel_nodes(graph, dict(zip(range(weight_mat.shape[0]), node_names)), copy=False)
     return nx.spring_layout(graph, iterations=150)
