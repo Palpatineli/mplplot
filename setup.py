@@ -13,7 +13,7 @@ except Exception as error:
 
 setup(
     name='mplplot',
-    version='0.1',
+    version='0.1.1',
     packages=['mplplot'],
     author='Keji Li',
     author_email='mail@keji.li',
