@@ -6,8 +6,8 @@ import seaborn as sns
 class MplFigure(object):
     ax: Optional[plt.Axes] = None
 
-    def __init__(self, save_path: str, figsize: Tuple[float, float]=(6, 6),
-                 despine: Dict[str, bool]=None, **kwargs) -> None:
+    def __init__(self, save_path: Optional[str] = None, figsize: Tuple[float, float] = (6, 6),
+                 despine: Optional[Dict[str, bool]] = None, **kwargs) -> None:
         sns.set(context="paper", style="ticks", palette="husl", font="Arial", font_scale=3)
         plt.rcParams['svg.fonttype'] = 'none'  # do not convert font to path in svg output
         plt.ioff()
@@ -43,5 +43,8 @@ class MplFigure(object):
 
     def __exit__(self, type, value, traceback):
         self.despine()
-        self.fig.savefig(self.save_path)
-        plt.close("all")
+        if self.save_path is not None:
+            self.fig.savefig(self.save_path)
+            plt.close("all")
+        else:
+            plt.show()
