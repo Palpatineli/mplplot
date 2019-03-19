@@ -14,16 +14,22 @@ def _bootstrap(data: np.ndarray, repeat: int = 1000, ci: float = 0.05) -> Tuple[
     result = np.sort(data[idx, idx2].mean(1), 0)
     return result[lower_idx, :], result[upper_idx, :]
 
-def tsplot(ax: Axes, data: np.ndarray, time: np.ndarray = None, **kwargs) -> Axes:
+def tsplot(ax: Axes, data: np.ndarray, time: np.ndarray = None, ci: float = 0.05, **kwargs) -> Axes:
+    """Time series plot with mean and bootstrapped spread.
+    Args:
+        ax: Axes to draw on
+        data: 2D array with rows of time series
+        time: if time is not None, then used for x-axis, same length as data.shape[1]
+        ci: confidence interval for two-ended p
+    Returns:
+        returns ax for chaining
+    """
     if time is None or time.ndim != 1 or time.size < data.shape[1]:
         time = np.arange(data.shape[1])
     elif time.size > data.shape[1]:
         time = time[0: data.shape[1]]
     ave = data.mean(0)
-    if 'ci' in kwargs:
-        lower, upper = _bootstrap(data, ci=kwargs.pop('ci'))
-    else:
-        lower, upper = _bootstrap(data)
+    lower, upper = _bootstrap(data, ci=ci)
     ax.fill_between(time, lower, upper, alpha=0.2, **kwargs)
     ax.plot(time, ave, **kwargs)
     ax.margins(x=0)
@@ -54,3 +60,24 @@ def stacked_bar(ax: Axes, data: Union[np.ndarray, List[List[Any]]], colors: Sequ
     for row, bottom, color in zip(data.T[1:], np.cumsum(data[0: -1]), colors[1:]):
         bars.append(ax.bar(x_axis, row, width, bottom=bottom, color=color))
     return bars
+
+def labeled_heatmap(ax: Axes, data: np.ndarray, x_label: np.ndarray = None, y_label: np.ndarray = None, **kwargs):
+    try:
+        x_label, y_label = data.axes[1], data.axes[0]
+        x_ticks = np.arange(0, data.shape[1], data.shape[1] // 5)
+        y_ticks = np.arange(0, data.shape[0], data.shape[0] // 5)
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(x_label[x_ticks])
+        ax.set_yticks(y_ticks)
+        ax.set_yticklabels(y_label[y_ticks])
+        ax.imshow(data.values, **kwargs)
+    except AttributeError:
+        ax.imshow(data, **kwargs)
+        if x_label is not None and len(x_label) == data.shape[1]:
+            ticks = np.arange(0, len(x_label), len(x_label) // 5)
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(x_label[ticks])
+        if y_label is not None and len(y_label) == data.shape[0]:
+            ticks = np.arange(0, len(y_label), len(y_label) // 5)
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(y_label[ticks])

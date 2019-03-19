@@ -1,54 +1,46 @@
 """use networkx for graph plotting"""
+from typing import Dict, List, Tuple
 import numpy as np
 import networkx as nx
-from matplotlib import pyplot as plt
+from networkx import draw_networkx_nodes as nodes, draw_networkx_edges as edges
+from matplotlib.axes import Axes
+from matplotlib.cm import get_cmap
+
+Layout = Dict[int, np.ndarray]
+Categories = List[Tuple[np.ndarray, str]]
 
 
-def corr_plot(corr_mat, file_name, categories, node_names=None, layout=None):
-    """plot network graph using correlation as inverse distance"""
-    length = corr_mat.shape[0]
-    graph = nx.from_numpy_matrix(corr_mat)
-    if not layout:
-        layout = nx.spring_layout(graph)
-    if node_names is not None and len(node_names) == length:
-        nx.relabel_nodes(graph, dict(zip(range(length), node_names)), copy=False)
-    indices = {name: idx for idx, name in enumerate(node_names)}
-    positive_edges = [(u, v, d) for u, v, d in graph.edges(data=True) if corr_mat[indices[u], indices[v]] > 0.3]
-    positive_weights = [corr_mat[indices[u], indices[v]] for u, v, _ in positive_edges]
-    negative_edges = [(u, v, d) for u, v, d in graph.edges(data=True) if corr_mat[indices[u], indices[v]] < -0.1]
-    negative_weights = [-corr_mat[indices[u], indices[v]] for u, v, _ in negative_edges]
-    plt.figure()
-    nx.draw_networkx_nodes(graph, layout, node_size=200, nodelist=list(categories['good']),
-                           node_color='#EA120D')  # red
-    nx.draw_networkx_nodes(graph, layout, node_size=200, nodelist=list(categories['unrelated']),
-                           node_color='#0AB815')  # green
-    nx.draw_networkx_edges(graph, layout, edgelist=negative_edges, edge_color=negative_weights,
-                           edge_vmin=0, edge_vmax=0.3,
-                           edge_cmap=plt.cm.Blues)  # pylint:disable=no-member
-    nx.draw_networkx_edges(graph, layout, edgelist=positive_edges, edge_color=positive_weights,
-                           edge_vmin=0.3, edge_vmax=0.7,
-                           edge_cmap=plt.cm.Reds)  # pylint:disable=no-member
-    plt.savefig(file_name)
-    return layout
-
-
-def scatter_plot(corr_mat, file_name, categories, layout=None):
+def scatter_plot(ax: Axes, corr_mat, file_name, categories: Categories, layout: Layout = None) -> Layout:
     """plot network with no edges by weight"""
     graph = nx.from_numpy_matrix(corr_mat)
-    if not layout:
-        layout = nx.spring_layout(graph, iterations=150)
-    nx.draw_networkx_nodes(graph, layout, node_size=10,
-                           nodelist=list(np.flatnonzero(categories['unrelated'])),
-                           node_color='#0AB815')  # green
-    nx.draw_networkx_nodes(graph, layout, node_size=10,
-                           nodelist=list(np.flatnonzero(categories['good'])),
-                           node_color='#EA120D')  # red
-    plt.savefig(file_name)
+    layout = (nx.spring_layout(graph, iterations=150) if layout is None else layout)
+    for category, color in categories:
+        nodes(graph, layout, node_size=10, nodelist=list(category), node_color=color, ax=ax)
     return layout
 
-
-def get_layout(weight_mat, node_names=None):
+def get_layout(weight_mat: np.ndarray, node_names=None) -> Layout:
     graph = nx.from_numpy_matrix(np.power(weight_mat, 2) * 5)
     if node_names is not None and len(node_names) == weight_mat.shape[0]:
         nx.relabel_nodes(graph, dict(zip(range(weight_mat.shape[0]), node_names)), copy=False)
     return nx.spring_layout(graph, iterations=150)
+
+def corr_plot(ax: Axes, corr_mat: np.ndarray, categories: Categories = None, node_names: List[str] = None,
+              layout: Layout = None) -> Layout:
+    """Plot network graph using correlation as inverse distance."""
+    length = corr_mat.shape[0]
+    graph = nx.from_numpy_matrix(corr_mat)
+    if node_names is not None and len(node_names) == length:
+        nx.relabel_nodes(graph, dict(zip(range(length), node_names)), copy=False)
+    layout = (nx.spring_layout(graph) if layout is None else layout)
+    if categories is None:
+        nodes(graph, layout, node_size=200, ax=ax)
+    else:
+        for node_list, color in categories:
+            nodes(graph, layout, node_size=200, nodelist=list(node_list), node_color=color, ax=ax)
+    for classifier, lims, color in ((lambda x: x[2]['weight'] > 0.3, (0.3, 0.7), get_cmap('Reds')),
+                                    (lambda x: x[2]['weight'] < -0.1, (-0.3, -0.1), get_cmap('Blues_r'))):
+        edge_list = list(filter(classifier, graph.edges(data=True)))
+        weight_list = list(map(lambda x: x[2]['weight'], edge_list))
+        edges(graph, layout, edgelist=edge_list, edge_color=weight_list, edge_vmin=lims[0], edge_vmax=lims[1],
+              edge_cmap=color, ax=ax)
+    return layout
