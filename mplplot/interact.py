@@ -48,9 +48,10 @@ class LineMover(MoverMixin):
             self.canvas.draw()
 
     def on_release(self, event):
-        y_input = event.ydata + self.press
-        self.press = None
-        res = self.func(y_input[0])
-        if res is not None:  # in case I need to ax.clear()
-            self.line = res
-        self.canvas.draw()
+        if self.press is not None:
+            y_input = event.ydata + self.press
+            self.press = None
+            res = self.func(y_input[0])
+            if res is not None:  # in case I need to ax.clear()
+                self.line = res
+            self.canvas.draw()
