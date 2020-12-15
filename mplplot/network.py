@@ -40,7 +40,7 @@ def corr_plot(ax: Axes, corr_mat: np.ndarray, categories: Categories = None, nod
     for classifier, lims, color in ((lambda x: x[2]['weight'] > 0.3, (0.3, 0.7), get_cmap('Reds')),
                                     (lambda x: x[2]['weight'] < -0.1, (-0.3, -0.1), get_cmap('Blues_r'))):
         edge_list = list(filter(classifier, graph.edges(data=True)))
-        weight_list = list(map(lambda x: x[2]['weight'], edge_list))
+        weight_list = list(map(lambda x: x[2]['weight'] ** 2 * 1.5, edge_list))
         edges(graph, layout, edgelist=edge_list, edge_color=weight_list, edge_vmin=lims[0], edge_vmax=lims[1],
               edge_cmap=color, ax=ax)
     return layout

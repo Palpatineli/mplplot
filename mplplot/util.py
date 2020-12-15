@@ -4,7 +4,7 @@ import re
 from math import pi
 import numpy as np
 
-def get_ellipse(axes: np.ndarray, resolution: int=21) -> np.ndarray:
+def get_ellipse(axes: np.ndarray, resolution: int = 21) -> np.ndarray:
     """get polygonal ellipses for params in numpy arrays
     Args:
         axes: np.array([[a, b], ...])
@@ -42,7 +42,7 @@ def rgb2hex(*rgb: int) -> str:
 
 def get_gradient_cmap(*colors: Union[str, Tuple[int, ...]], scale: Optional[List[float]] = None,
                       name: Optional[str] = None) -> LinearSegmentedColormap:
-    colors = [(hex2rgb(color) if isinstance(color, str) else color) for color in colors]
+    colors = [(hex2rgb(color) if isinstance(color, str) else color) for color in colors]  # type: ignore
     if scale is None:
         scale = np.linspace(0, 1.0, len(colors))
     if all(len(a) == 4 for a in colors):
@@ -52,7 +52,7 @@ def get_gradient_cmap(*colors: Union[str, Tuple[int, ...]], scale: Optional[List
     cdict: Dict[str, List[List[float]]] = {x: list() for x in comp_names}
     for color, loc in zip(colors, scale):
         for idx, comp_name in enumerate(comp_names):
-            cdict[comp_name].append([loc, color[idx] / 256, color[idx] / 256])
+            cdict[comp_name].append([loc, color[idx] / 256, color[idx] / 256])  # type: ignore
     return LinearSegmentedColormap(("new_cmap" if name is None else name), cdict)
 
 def test_hex2rgb():

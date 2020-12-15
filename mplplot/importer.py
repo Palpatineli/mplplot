@@ -10,17 +10,20 @@ def _is_list(x):
 
 class Figure(object):
     def __init__(self, save_path: Optional[str] = None, figsize: Tuple[float, float] = (6, 6),
-                 grid: Tuple[int, int] = (1, 1), projection=None, despine: Optional[Dict[str, bool]] = None,
+                 grid: Tuple[int, int] = (1, 1), projection=None,
+                 despine: Optional[Dict[str, bool]] = None,
+                 font_scale: int = 3,
+                 show: bool = False,
                  **kwargs) -> None:
-        sns.set(context="paper", style="ticks", palette="husl", font="Arial", font_scale=3)
+        sns.set(context="paper", style="ticks", palette="husl", font="Arial", font_scale=font_scale)
         plt.rcParams['svg.fonttype'] = 'none'  # do not convert font to path in svg output
-        plt.ioff()
         self.figsize = figsize
         self.save_path = save_path
         self.is_despine = {'top': True, 'bottom': False, 'left': False, 'right': True,
                            **(despine if despine else dict())}
         self.kwargs = kwargs
         self.grid = grid
+        self.show = show
         self.proj = projection if _is_list(projection) else ([projection] * (grid[0] * grid[1]))
 
     def despine(self) -> None:
@@ -38,6 +41,8 @@ class Figure(object):
             sns.despine()
 
     def __enter__(self):
+        plt.ioff()
+        plt.close('all')
         fig = plt.figure(figsize=self.figsize, dpi=100, **self.kwargs)
         self.axes: List[plt.Axes] = list()
         size_y, size_x = self.grid
@@ -51,8 +56,8 @@ class Figure(object):
 
     def __exit__(self, type, value, traceback):
         self.despine()
+        if self.save_path is None or self.show:
+            plt.show()
         if self.save_path is not None:
             self.fig.savefig(self.save_path)
-            plt.close("all")
-        else:
-            plt.show()
+        plt.ion()

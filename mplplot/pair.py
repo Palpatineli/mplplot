@@ -5,11 +5,11 @@ from matplotlib.axes import Axes
 from matplotlib.transforms import Affine2D
 import matplotlib.pyplot as plt
 from mpl_toolkits.axisartist.floating_axes import GridHelperCurveLinear, FloatingSubplot
-from mplplot.importer import Figure
 
 HISTOGRAM_RATIO = 0.2  # length vs. height ratio of the histogram
 
-def pair(xs: np.ndarray, ys: np.ndarray, colors: List[str], ax: Optional[Axes] = None, **kwargs) -> Axes:
+def pair(xs: np.ndarray, ys: np.ndarray, colors: List[str], ax: Optional[Axes] = None,
+         density_params=None, scatter_params=None) -> Axes:
     """Draw a scatterplot for two features of same observations.
     Args:
         xs, ys: list of 1d arrays,
@@ -24,11 +24,16 @@ def pair(xs: np.ndarray, ys: np.ndarray, colors: List[str], ax: Optional[Axes] =
     if ax is None:
         ax = plt.gca()
     # get density, and extremies of both density and scatter
-    xyds = [density_plot(x - y, **kwargs) for x, y in zip(xs, ys)]
+    if density_params:
+        xyds = [density_plot(x - y, **density_params) for x, y in zip(xs, ys)]
+    else:
+        xyds = [density_plot(x - y) for x, y in zip(xs, ys)]
     yd_max = max([y.max() for _, y in xyds])
     xd_max = max(abs(min([x.min() for x, _ in xyds])), abs(max([x.max() for x, _ in xyds])))
     x_minmax = (min(min([x.min() for x in xs]), min([y.min() for y in ys])),
                 max(max([x.max() for x in xs]), max([y.max() for y in ys])))
+    side = x_minmax[1] - x_minmax[0]
+    x_minmax = (x_minmax[0] - side / 6, x_minmax[1] + side / 6)
     x_range = x_minmax[1] - x_minmax[0]
     # calculate size of scatter plot and desnity plot
     r_b = 0.8 / (1 + (0.5 + HISTOGRAM_RATIO) * (xd_max / x_range))
@@ -45,14 +50,20 @@ def pair(xs: np.ndarray, ys: np.ndarray, colors: List[str], ax: Optional[Axes] =
     # draw density
     for (x, y), color in zip(xyds, colors):
         sup_ax_aux.fill(x, y, color=color, alpha=0.75)
+    for x, y, color in zip(xs, ys, colors):
+        sup_ax_aux.plot(np.full(2, np.median(x - y)), [0, yd_max], color=color, ls='--', linewidth=1.2)
     ax.figure.add_subplot(sup_ax)
     ax.sup_ax = sup_ax_aux
     # draw scatterplot
-    for x0, y0, color in zip(xs, ys, colors):
-        ax.scatter(x0, y0, color=color)
+    if scatter_params:
+        for x0, y0, color in zip(xs, ys, colors):
+            ax.scatter(x0, y0, color=color, s=40, **scatter_params)
+    else:
+        for x0, y0, color in zip(xs, ys, colors):
+            ax.scatter(x0, y0, color=color, s=40)
     ax.set_xlim(*x_minmax)
     ax.set_ylim(*x_minmax)
-    ax.plot(x_minmax, x_minmax, ls='--', c='.3')
+    ax.plot(x_minmax, x_minmax, ls='--', linewidth=2, color='k')
     return ax
 
 def density_plot(x, edge: float = 0.25, bw: float = 0.15, sample_no: int = 500):
@@ -64,9 +75,13 @@ def density_plot(x, edge: float = 0.25, bw: float = 0.15, sample_no: int = 500):
     density = density_fn(x0)
     return x0, density
 
-def test_density_plot():
+def test_pair_plot():
     np.random.randn(12345)
     x = [np.random.uniform(0.1, 0.9, 100), np.random.uniform(0.1, 0.9, 100)]
     y = [x[0] + np.random.randn(100) * 0.05, x[1] * 0.8 - 0.05 + np.random.randn(100) * 0.05]
-    with Figure(figsize=(12, 12)) as axes:
-        pair(x, y, ["#619CFF", "#00BA38"], axes[0])
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_xlabel("feature 1")
+    ax.set_ylabel("feature 2")
+    pair(x, y, ["#619CFF", "#00BA38"], ax)
+    plt.show()
